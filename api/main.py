@@ -5,16 +5,30 @@ import requests
 from qdrant_client import QdrantClient
 import sys
 from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import (
     QDRANT_HOST, QDRANT_PORT, COLLECTION_ZMLUVY,
-    OLLAMA_EMBED_URL, EMBED_MODEL, CHAT_MODEL
+    OLLAMA_EMBED_URL, EMBED_MODEL, CHAT_MODEL, BASE_DIR
 )
 
+
+UI_DIR = BASE_DIR / "ui"
+
 app = FastAPI()
+
+
+app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
+
+@app.get("/")
+def root():
+    return FileResponse(UI_DIR / "index.html")
+
 
 client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
 
@@ -57,6 +71,7 @@ def extract_relevant_sentence(text, question):
             return s.strip()
 
     return sentences[0].strip() if sentences else text[:200]
+
 
 @app.post("/ask")
 def ask(q: Question):

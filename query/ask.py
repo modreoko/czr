@@ -90,8 +90,6 @@ if contract_id:
 # =====================
 else:
 # skúsime extrahovať meno z otázky
-    # jednoduchý regex, berieme posledné dve slová za "s"
-    #match = re.search(r"s\s+([\wáčďéíľňóôŕšťúýžÁČĎÉÍĽŇÓÔŔŠŤÚÝŽ]+(?:\s[\wáčďéíľňóôŕšťúýžÁČĎÉÍĽŇÓÔŔŠŤÚÝŽ]+)?)", question, flags=re.IGNORECASE)
     contract_party = extract_contract_party(question)
 
     if contract_party:
