@@ -27,4 +27,4 @@ client.get_collections()
 client.delete_collection("zmluvy_v2")
 
 spustenie web servera
-uvicorn api.main:app --reload       
+uvicorn api.main:app --reload
