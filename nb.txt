@@ -1,0 +1,28 @@
+Enterprise 1
+https://rocket.net/pricing#enterprise
+$649/month
+
+
+QR kod pre memberplanet URL
+
+
+FLK 9773
+EDGE 2790
+nastartovat virtual pre python
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.venv\Scripts\Activate.ps1
+
+zapnut qdrant
+docker run -d -p 6333:6333 -v qdrant_data:/qdrant/storage qdrant/qdrant
+alebo este lepsie
+start docker-compose start
+s
+
+mazanie collections v python
+
+from qdrant_client import QdrantClient
+client = QdrantClient(host="localhost", port=6333)
+client.get_collections()
+client.delete_collection("zmluvy_v2")
+
+uvicorn api.main:app --reload       
