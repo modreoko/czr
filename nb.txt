@@ -10,6 +10,7 @@ FLK 9773
 EDGE 2790
 nastartovat virtual pre python
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
 .venv\Scripts\Activate.ps1
 
 zapnut qdrant
@@ -25,4 +26,5 @@ client = QdrantClient(host="localhost", port=6333)
 client.get_collections()
 client.delete_collection("zmluvy_v2")
 
+spustenie web servera
 uvicorn api.main:app --reload       

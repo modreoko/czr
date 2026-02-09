@@ -25,6 +25,7 @@ pip-delete-this-directory.txt
 *.swo
 *~
 .DS_Store
+nb.txt
 
 # Data directories - ignore all downloaded contracts, PDFs, and extracted text
 data/

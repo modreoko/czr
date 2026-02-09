@@ -34,7 +34,6 @@ QDRANT_PORT = 6333
 
 # Collection names
 COLLECTION_ZMLUVY = "zmluvy_v2"
-COLLECTION_CHUNKS = "zmluvy_chunks"
 
 # Vector settings
 VECTOR_SIZE = 768
