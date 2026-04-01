@@ -5,6 +5,8 @@ from tqdm import tqdm
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, PointStruct
 import sys
+from datetime import datetime
+import logging
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -14,6 +16,11 @@ from config import (
     QDRANT_HOST, QDRANT_PORT, VECTOR_SIZE, VECTOR_DISTANCE, REQUEST_TIMEOUT, UPSERT_BATCH_SIZE
 )
 from ingest.load_xml_metadata import load_metadata
+from ingest.pipeline_state import load_start_date
+from ingest.logger import get_logger
+
+# Get logger
+logger = get_logger()
 
 # =========================
 # KONFIGURÁCIA
@@ -59,15 +66,23 @@ def embed(text: str):
 # INGEST
 # =========================
 
+# Načítanie START_DATE
+start_date = load_start_date()
+if not start_date:
+    logger.warning("⚠️ START_DATE nenájdený, ingestujem všetky TXT súbory")
+    start_date = datetime.min
+
+logger.info(f"📅 Ingestujeme iba zmluvy od: {start_date.strftime('%Y-%m-%d')}")
+
 txt_files = list(TXT_DIR.glob("*.txt"))
-print(f"📄 Nájdené TXT súbory: {len(txt_files)}")  # 👀 LOG
+logger.info(f"📄 Nájdené TXT súbory: {len(txt_files)}")
 
 points = []
 
 for txt_file in tqdm(txt_files, desc="Ingestujem TXT"):
     pdf_name = txt_file.name.replace(".txt", ".pdf")
 
-    print(f"\n📄 Spracúvam TXT: {txt_file.name}")  # 👀 LOG
+    logger.debug(f"\n📄 Spracúvam TXT: {txt_file.name}")
 
     # nájdeme zmluvu podľa PDF
     zmluva = next(
@@ -76,18 +91,29 @@ for txt_file in tqdm(txt_files, desc="Ingestujem TXT"):
     )
 
     if not zmluva:
-        print(f"⚠️  Preskakujem – nenašiel som metadata pre PDF: {pdf_name}")  # 👀 LOG
+        logger.debug(f"⚠️  Preskakujem – nenašiel som metadata pre PDF: {pdf_name}")
         continue
 
-    print(
+    # Filtrovanie podľa START_DATE
+    if zmluva.get("datum"):
+        try:
+            zmluva_date = datetime.strptime(zmluva["datum"], "%Y-%m-%d")
+            if zmluva_date < start_date:
+                logger.debug(f"⏭️  Preskakujem – zmluva je stará ({zmluva['datum']} < {start_date.strftime('%Y-%m-%d')})")
+                continue
+        except ValueError:
+            # Ak dátum nemá správny formát, spracúvam zmluvu
+            pass
+
+    logger.info(
         f"✅ ZMLUVA {zmluva['zmluva_id']} | "
         f"{zmluva.get('zs1', '')} × {zmluva.get('zs2', '')}"
-    )  # 👀 LOG
+    )
 
     text = txt_file.read_text(encoding="utf-8", errors="ignore")
 
     chunks = chunk_text(text, CHUNK_SIZE)
-    print(f"   → počet chunkov: {len(chunks)}")  # 👀 LOG
+    logger.debug(f"   → počet chunkov: {len(chunks)}")
 
     for idx, chunk in enumerate(chunks):
 
@@ -135,11 +161,12 @@ TEXT ZMLUVY:
 
         if len(points) >= 50:
             client.upsert(collection_name=COLLECTION, points=points)
-            print(f"   ⬆️  Uložených 50 chunkov do Qdrant")  # 👀 LOG
+            logger.debug(f"   ⬆️  Uložených 50 chunkov do Qdrant")
             points.clear()
 
 if points:
     client.upsert(collection_name=COLLECTION, points=points)
-    print(f"⬆️  Uložených posledných {len(points)} chunkov")  # 👀 LOG
+    logger.info(f"⬆️  Uložených posledných {len(points)} chunkov")
 
-print("✅ Metadata + hybrid ingest hotový")
+logger.info("✅ Metadata + hybrid ingest hotový")
+sys.exit(0)

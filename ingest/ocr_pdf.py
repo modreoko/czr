@@ -3,11 +3,16 @@ from pdf2image import convert_from_path
 import pytesseract
 import shutil
 import sys
+import logging
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import TMP_PDF_DIR, TMP_TXT_DIR
+from ingest.logger import get_logger
+
+# Get logger
+logger = get_logger()
 
 # ------------------------
 # Cesty
@@ -25,14 +30,14 @@ POPPLER_PATH = r"C:\poppler-25.12.0\Library\bin"
 # ------------------------
 def ocr_pdf(pdf_path: Path):
     txt_path = TXT_DIR / f"{pdf_path.stem}.txt"
-    
+
     if txt_path.exists():
-        print(f"OCR už hotový: {txt_path}")
+        logger.debug(f"OCR už hotový: {txt_path}")
         # Ak TXT existuje, PDF môžeme rovno zmazať
         pdf_path.unlink()
         return txt_path
 
-    print(f"OCR: {pdf_path}")
+    logger.debug(f"OCR: {pdf_path}")
     try:
         # Konverzia PDF -> obrázky
         pages = convert_from_path(str(pdf_path), poppler_path=POPPLER_PATH)
@@ -45,16 +50,16 @@ def ocr_pdf(pdf_path: Path):
         with open(txt_path, "w", encoding="utf-8") as f:
             f.write(full_text)
 
-        print(f"Text uložený: {txt_path}")
-        
+        logger.debug(f"Text uložený: {txt_path}")
+
         # PDF sa zmaže po úspešnom OCR
         pdf_path.unlink()
-        print(f"PDF zmazané: {pdf_path}")
+        logger.debug(f"PDF zmazané: {pdf_path}")
 
         return txt_path
 
     except Exception as e:
-        print(f"Chyba OCR: {pdf_path} -> {e}")
+        logger.error(f"Chyba OCR: {pdf_path} -> {e}")
         return None
 
 # ------------------------
@@ -62,10 +67,36 @@ def ocr_pdf(pdf_path: Path):
 # ------------------------
 def main():
     pdf_files = sorted(TMP_DIR.glob("*.pdf"))
-    print(f"Nájdené PDF súbory: {len(pdf_files)}")
+    logger.info(f"Nájdené PDF súbory: {len(pdf_files)}")
+
+    # Filtrovanie - spracúvam iba PDF, pre ktoré neexistuje TXT
+    new_pdf_files = []
+    processed_pdf_files = []
 
     for pdf_file in pdf_files:
+        txt_path = TXT_DIR / f"{pdf_file.stem}.txt"
+        if txt_path.exists():
+            processed_pdf_files.append(pdf_file)
+        else:
+            new_pdf_files.append(pdf_file)
+
+    logger.info(f"Nových PDF na spracovanie: {len(new_pdf_files)}")
+    logger.info(f"Už spracovaných (preskakujem): {len(processed_pdf_files)}")
+
+    for pdf_file in new_pdf_files:
         ocr_pdf(pdf_file)
 
+    # Vyčistenie starých PDF súborov (ktoré už majú TXT)
+    for pdf_file in processed_pdf_files:
+        if pdf_file.exists():
+            pdf_file.unlink()
+            logger.debug(f"Zmazané staré PDF: {pdf_file.name}")
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        logger.info("✅ OCR všetkých PDF hotový")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"❌ Chyba pri OCR: {e}")
+        sys.exit(1)

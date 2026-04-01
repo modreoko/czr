@@ -2,11 +2,19 @@ import requests
 from pathlib import Path
 from lxml import etree
 import sys
+import traceback
+from datetime import datetime
+import logging
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import XML_FILTERED_DIR, TMP_PDF_DIR, CRZ_PDF_BASE_URL, DOWNLOAD_TIMEOUT
+from ingest.pipeline_state import load_start_date
+from ingest.logger import get_logger
+
+# Get logger
+logger = get_logger()
 
 XML_DIR = XML_FILTERED_DIR
 TMP_DIR = TMP_PDF_DIR
@@ -17,42 +25,63 @@ def download_pdf(pdf_filename: str):
     dest = TMP_DIR / pdf_filename
 
     if dest.exists():
-        print(f"PDF už existuje: {dest}")
+        logger.debug(f"PDF už existuje: {dest}")
         return dest
 
     try:
-        print(f"Stiahnem: {pdf_filename}")
+        logger.debug(f"Stiahnem: {pdf_filename}")
         with requests.get(url, stream=True, timeout=DOWNLOAD_TIMEOUT) as r:
             r.raise_for_status()
             with open(dest, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-        print(f"Stiahnuté: {dest}")
+        logger.debug(f"Stiahnuté: {dest}")
         return dest
     except Exception as e:
-        print(f"Chyba pri sťahovaní {pdf_filename}: {e}")
+        logger.error(f"Chyba pri sťahovaní {pdf_filename}: {e}")
         return None
 
 # Hlavná funkcia – parsovanie XML a sťahovanie všetkých PDF
 def main():
+    # Načítanie START_DATE z pipeline state
+    start_date = load_start_date()
+    if not start_date:
+        logger.warning("⚠️ START_DATE nenájdený, spracúvam všetky XML súbory")
+        start_date = datetime.min
+
     xml_files = list(XML_DIR.glob("*.xml"))
     if not xml_files:
         raise FileNotFoundError(f"Žiadne XML súbory v adresári: {XML_DIR}")
 
-    print(f"Nájdených XML súborov: {len(xml_files)}")
+    logger.info(f"Nájdených XML súborov: {len(xml_files)}")
+    logger.info(f"Filtrujem iba súbory od: {start_date.strftime('%Y-%m-%d')}")
 
+    # Filtrovanie XML súborov podľa dátumu
+    filtered_files = []
     for xml_path in xml_files:
-        print(f"\nSpracúvam súbor: {xml_path.name}")
+        try:
+            date_str = xml_path.stem  # názov bez .xml
+            file_date = datetime.strptime(date_str, "%Y-%m-%d")
+            if file_date >= start_date:
+                filtered_files.append(xml_path)
+        except ValueError:
+            # Ak súbor nemá správny formát dátumu, ignorujeme ho
+            pass
+
+    logger.info(f"Spracúvam {len(filtered_files)} XML súborov")
+
+    for xml_path in filtered_files:
+        logger.info(f"\nSpracúvam súbor: {xml_path.name}")
         try:
             tree = etree.parse(str(xml_path))
             root = tree.getroot()
             zmluvy = root.findall(".//zmluva")
-            print(f"Nájdených zmlúv v {xml_path.name}: {len(zmluvy)}")
+            logger.debug(f"Nájdených zmlúv v {xml_path.name}: {len(zmluvy)}")
 
             for zmluva in zmluvy:
                 nazov = zmluva.findtext("nazov")
                 contract_id = zmluva.findtext("ID")
-                print(f"\nZMLUVA ID {contract_id} – {nazov}")
+                logger.debug(f"\nZMLUVA ID {contract_id} – {nazov}")
 
                 prilohy = zmluva.findall(".//priloha")
                 for priloha in prilohy:
@@ -64,7 +93,13 @@ def main():
                         download_pdf(pdf_file)
 
         except Exception as e:
-            print(f"⚠️ Chyba pri spracovaní {xml_path.name}: {e}")
+            logger.error(f"⚠️ Chyba pri spracovaní {xml_path.name}: {e}")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+        logger.info("✅ Všetky PDF stiahnuté úspešne")
+        sys.exit(0)
+    except Exception as e:
+        logger.error(f"❌ Chyba pri sťahovaní PDF: {e}")
+        sys.exit(1)

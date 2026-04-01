@@ -7,6 +7,7 @@ from lxml import etree
 import xml.etree.ElementTree as ET
 import time as tm
 import sys
+import logging
 
 # Add project root to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -14,16 +15,31 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import (
     XML_DIR, XML_FILTERED_DIR, ICO_FILE, CRZ_EXPORT_URL
 )
+from ingest.pipeline_state import load_start_date
+from ingest.logger import get_logger
 
-# rozsah dátumov
-START_DATE = datetime(2024, 1, 1)
+# Get logger
+logger = get_logger()
+
+# =========================
+# NAČÍTANIE START_DATE Z PIPELINE STATE
+# =========================
+
+start_date = load_start_date()
+if start_date:
+    START_DATE = start_date
+    logger.info(f"📅 Načítaný START_DATE z pipeline_state: {START_DATE.strftime('%Y-%m-%d')}")
+else:
+    START_DATE = datetime(2024, 1, 1)
+    logger.info(f"📅 Žiadny START_DATE v pipeline_state, začínam od: {START_DATE.strftime('%Y-%m-%d')}")
+
 END_DATE = datetime.today()
 
 DATA_DIR = XML_DIR
 FILTERED_DATA_DIR = XML_FILTERED_DIR
 BASE_URL = CRZ_EXPORT_URL
-print(f"📄 ICO_FILE: {ICO_FILE}")
-print(f"📄 ICO_FILE exists: {ICO_FILE.exists()}")
+logger.info(f"📄 ICO_FILE: {ICO_FILE}")
+logger.info(f"📄 ICO_FILE exists: {ICO_FILE.exists()}")
 
 exit_if_missing = not ICO_FILE.exists()
 if exit_if_missing:
@@ -36,7 +52,7 @@ if exit_if_missing:
 with open(ICO_FILE, "r", encoding="utf-8") as f:
     allowed_icos = set(line.strip() for line in f if line.strip())
 
-print(f"🔹 Načítaných ICO: {len(allowed_icos)}")
+logger.info(f"🔹 Načítaných ICO: {len(allowed_icos)}")
 
 # =========================
 # POMOCNÉ FUNKCIE
@@ -61,14 +77,14 @@ def download_zip_for_date(dt: datetime):
     xml_path = DATA_DIR / f"{date_str}.xml"
 
     if xml_path.exists():
-        print(f"✅ XML pre {date_str} už existuje, preskakujem")
+        logger.debug(f"✅ XML pre {date_str} už existuje, preskakujem")
         return xml_path
 
     try:
-        print(f"⬇️  Sťahujem {url}")
+        logger.debug(f"⬇️  Sťahujem {url}")
         resp = requests.get(url, timeout=60)
         if resp.status_code != 200:
-            print(f"⚠️ ZIP pre {date_str} neexistuje (HTTP {resp.status_code})")
+            logger.warning(f"⚠️ ZIP pre {date_str} neexistuje (HTTP {resp.status_code})")
             return None
 
         # uloženie ZIP
@@ -80,19 +96,19 @@ def download_zip_for_date(dt: datetime):
             # predpokladáme, že ZIP obsahuje jeden XML súbor
             xml_files = [f for f in zip_ref.namelist() if f.endswith(".xml")]
             if not xml_files:
-                print(f"⚠️ ZIP pre {date_str} neobsahuje XML súbor")
+                logger.warning(f"⚠️ ZIP pre {date_str} neobsahuje XML súbor")
                 return None
             zip_ref.extract(xml_files[0], DATA_DIR)
             extracted_path = DATA_DIR / xml_files[0]
 
         # vymazanie ZIP po rozbalení
         zip_path.unlink()
-        print(f"✅ Rozbalené a uložené {extracted_path.name}")
+        logger.info(f"✅ Rozbalené a uložené {extracted_path.name}")
 
         return extracted_path
 
     except Exception as e:
-        print(f"❌ Chyba pri sťahovaní {date_str}: {e}")
+        logger.error(f"❌ Chyba pri sťahovaní {date_str}: {e}")
         return None
 
 def filter_xml_by_ico(xml_file: Path, allowed_icos: set):
@@ -111,9 +127,9 @@ def filter_xml_by_ico(xml_file: Path, allowed_icos: set):
     if len(filtered_root):
         filtered_path = FILTERED_DATA_DIR / f"{xml_file.stem}.xml"
         etree.ElementTree(filtered_root).write(str(filtered_path), encoding="utf-8", xml_declaration=True)
-        print(f"✅ Filtrované zmluvy uložené: {filtered_path.name}")
+        logger.info(f"✅ Filtrované zmluvy uložené: {filtered_path.name}")
     else:
-        print(f"ℹ️ Žiadne zmluvy z ICO v {xml_file.name}, nič sa neuložilo")
+        logger.info(f"ℹ️ Žiadne zmluvy z ICO v {xml_file.name}, nič sa neuložilo")
 
 # =========================
 # Hlavný cyklus
@@ -128,3 +144,5 @@ while current_date <= END_DATE:
     current_date += timedelta(days=1)
 
 print("✅ Hotovo – všetky XML súbory spracované")
+logger.info("✅ Hotovo – všetky XML súbory spracované")
+sys.exit(0)
