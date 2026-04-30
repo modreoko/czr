@@ -41,47 +41,47 @@ def download_pdf(pdf_filename: str):
         logger.error(f"Chyba pri sťahovaní {pdf_filename}: {e}")
         return None
 
-# Hlavná funkcia – parsovanie XML a sťahovanie všetkých PDF
+# Hlavna funkcia - parsovanie XML a stahovanie vsetkych PDF
 def main():
-    # Načítanie START_DATE z pipeline state
+    # Nacitanie START_DATE z pipeline state
     start_date = load_start_date()
     if not start_date:
-        logger.warning("⚠️ START_DATE nenájdený, spracúvam všetky XML súbory")
+        logger.warning("[WARNING] START_DATE nenajdeny, spracuvam vsetky XML subory")
         start_date = datetime.min
 
     xml_files = list(XML_DIR.glob("*.xml"))
     if not xml_files:
-        raise FileNotFoundError(f"Žiadne XML súbory v adresári: {XML_DIR}")
+        raise FileNotFoundError(f"Ziadne XML subory v adresari: {XML_DIR}")
 
-    logger.info(f"Nájdených XML súborov: {len(xml_files)}")
-    logger.info(f"Filtrujem iba súbory od: {start_date.strftime('%Y-%m-%d')}")
+    logger.info(f"Najdanych XML suborov: {len(xml_files)}")
+    logger.info(f"Filtrujem iba subory od: {start_date.strftime('%Y-%m-%d')}")
 
-    # Filtrovanie XML súborov podľa dátumu
+    # Filtrovanie XML suborov podla datumu
     filtered_files = []
     for xml_path in xml_files:
         try:
-            date_str = xml_path.stem  # názov bez .xml
+            date_str = xml_path.stem  # nazov bez .xml
             file_date = datetime.strptime(date_str, "%Y-%m-%d")
             if file_date >= start_date:
                 filtered_files.append(xml_path)
         except ValueError:
-            # Ak súbor nemá správny formát dátumu, ignorujeme ho
+            # Ak subor nema spravny format datumu, ignorujeme ho
             pass
 
-    logger.info(f"Spracúvam {len(filtered_files)} XML súborov")
+    logger.info(f"Spracuvam {len(filtered_files)} XML suborov")
 
     for xml_path in filtered_files:
-        logger.info(f"\nSpracúvam súbor: {xml_path.name}")
+        logger.info(f"\nSpracuvam subor: {xml_path.name}")
         try:
             tree = etree.parse(str(xml_path))
             root = tree.getroot()
             zmluvy = root.findall(".//zmluva")
-            logger.debug(f"Nájdených zmlúv v {xml_path.name}: {len(zmluvy)}")
+            logger.debug(f"Najdanych zmlúv v {xml_path.name}: {len(zmluvy)}")
 
             for zmluva in zmluvy:
                 nazov = zmluva.findtext("nazov")
                 contract_id = zmluva.findtext("ID")
-                logger.debug(f"\nZMLUVA ID {contract_id} – {nazov}")
+                logger.debug(f"\nZMLUVA ID {contract_id} - {nazov}")
 
                 prilohy = zmluva.findall(".//priloha")
                 for priloha in prilohy:
@@ -93,13 +93,13 @@ def main():
                         download_pdf(pdf_file)
 
         except Exception as e:
-            logger.error(f"⚠️ Chyba pri spracovaní {xml_path.name}: {e}")
+            logger.error(f"[WARNING] Chyba pri spracovani {xml_path.name}: {e}")
 
 if __name__ == "__main__":
     try:
         main()
-        logger.info("✅ Všetky PDF stiahnuté úspešne")
+        logger.info("[OK] Vsetky PDF stahnute uspesne")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"❌ Chyba pri sťahovaní PDF: {e}")
+        logger.error(f"[ERROR] Chyba pri stahovani PDF: {e}")
         sys.exit(1)

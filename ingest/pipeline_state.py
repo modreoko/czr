@@ -1,5 +1,5 @@
 """
-Správa stavu pipeline – ukladá a načítava START_DATE medzi spusteniami.
+Sprava stavu pipeline - uklada a nacitava START_DATE medzi spusteniami.
 """
 
 import json
@@ -12,10 +12,10 @@ STATE_FILE = DATA_DIR / "pipeline_state.json"
 
 def save_start_date(start_date: datetime) -> None:
     """
-    Uloží START_DATE do stavu súboru.
+    Ulozi START_DATE do stavu suboru.
 
     Args:
-        start_date: datetime objekt na uloženie
+        start_date: datetime objekt na ulozenie
     """
     state = {
         "start_date": start_date.strftime("%Y-%m-%d"),
@@ -23,15 +23,15 @@ def save_start_date(start_date: datetime) -> None:
     }
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, ensure_ascii=False)
-    print(f"✅ Uložený START_DATE: {start_date.strftime('%Y-%m-%d')}")
+    print(f"[OK] Ulozeny START_DATE: {start_date.strftime('%Y-%m-%d')}")
 
 
 def load_start_date() -> datetime:
     """
-    Načíta START_DATE zo stavu súboru.
+    Nacita START_DATE zo stavu suboru.
 
     Returns:
-        datetime objekt s uloženým START_DATE alebo None ak súbor neexistuje
+        datetime objekt s ulozenim START_DATE alebo None ak subor neexistuje
     """
     if not STATE_FILE.exists():
         return None

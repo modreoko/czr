@@ -58,8 +58,8 @@ def setup_logging(enable_logging: bool = False) -> logging.Logger:
 
         # Log initialization message
         logger.info("=" * 80)
-        logger.info(f"🔵 LOGGING STARTED - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        logger.info(f"📝 Log file: {LOG_FILE}")
+        logger.info(f"[START] LOGGING STARTED - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        logger.info(f"[FILE] Log file: {LOG_FILE}")
         logger.info("=" * 80)
 
     return logger

@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 
 # Add project root to path for imports
@@ -16,6 +17,15 @@ from query_service import search_contracts, generate_llm_response, stream_llm_re
 UI_DIR = BASE_DIR / "ui"
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 
 app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")

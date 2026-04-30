@@ -27,15 +27,38 @@ client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
 # =====================
 # EMBEDDING FUNKCIA
 # =====================
+def _try_ollama_embedding(text: str) -> list:
+    candidates = [
+        OLLAMA_EMBED_URL,
+        OLLAMA_EMBED_URL.rstrip("/").replace("/api/embeddings", "/api/embed"),
+        OLLAMA_EMBED_URL.rstrip("/").replace("/api/embeddings", "/embeddings"),
+    ]
+
+    last_exception = None
+    for url in candidates:
+        try:
+            r = requests.post(
+                url,
+                json={"model": EMBED_MODEL, "prompt": text},
+                timeout=REQUEST_TIMEOUT
+            )
+            if r.status_code >= 400:
+                last_exception = f"HTTP {r.status_code}: {r.text}"
+                continue
+            r.raise_for_status()
+            return r.json()["embedding"]
+        except Exception as e:
+            last_exception = e
+            continue
+
+    raise RuntimeError(
+        f"Failed to generate embedding using Ollama. Tried endpoints: {candidates}. Last error: {last_exception}"
+    )
+
+
 def embed(text: str) -> list:
     """Generate embeddings for text using Ollama."""
-    r = requests.post(
-        OLLAMA_EMBED_URL,
-        json={"model": EMBED_MODEL, "prompt": text},
-        timeout=REQUEST_TIMEOUT
-    )
-    r.raise_for_status()
-    return r.json()["embedding"]
+    return _try_ollama_embedding(text)
 
 
 # =====================
@@ -246,20 +269,17 @@ PREDMET ZMLUVY: <predmet z metadát>
 """
     
     response = requests.post(
-        OLLAMA_CHAT_URL,
+        OLLAMA_CHAT_URL.replace('/api/chat', '/api/generate'),
         json={
             "model": CHAT_MODEL,
-            "messages": [
-                {"role": "system", "content": "Si právny asistent pracujúci so zmluvami. Odpovedaj iba z textov."},
-                {"role": "user", "content": prompt}
-            ],
+            "prompt": prompt,
             "stream": False
         },
         timeout=600
     )
     response.raise_for_status()
     
-    return response.json().get("message", {}).get("content", "Chyba pri generovaní odpovede.")
+    return response.json().get("response", "Chyba pri generovaní odpovede.")
 
 
 def stream_llm_response(question: str, hits: list):
@@ -331,13 +351,10 @@ PREDMET ZMLUVY: <predmet z metadát>
 """
     
     response = requests.post(
-        OLLAMA_CHAT_URL,
+        OLLAMA_CHAT_URL.replace('/api/chat', '/api/generate'),
         json={
             "model": CHAT_MODEL,
-            "messages": [
-                {"role": "system", "content": "Si právny asistent pracujúci so zmluvami. Odpovedaj iba z textov."},
-                {"role": "user", "content": prompt}
-            ],
+            "prompt": prompt,
             "stream": True
         },
         stream=True,
@@ -351,8 +368,8 @@ PREDMET ZMLUVY: <predmet z metadát>
         
         try:
             data = json.loads(line.decode("utf-8"))
-            if "message" in data and "content" in data["message"]:
-                chunk = data["message"]["content"]
+            if "response" in data:
+                chunk = data["response"]
                 if chunk:
                     yield chunk
             if data.get("done"):

@@ -3,6 +3,8 @@ Centralized configuration for the zmluvy project.
 All common settings used across the application are defined here.
 """
 
+import os
+
 from pathlib import Path
 
 # =========================
@@ -29,7 +31,7 @@ ICO_FILE = BASE_DIR / "ico_list.txt"
 # =========================
 # QDRANT SETTINGS
 # =========================
-QDRANT_HOST = "localhost"
+QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost") # localhost for local, "qdrant" for docker
 QDRANT_PORT = 6333
 
 # Collection names
@@ -42,13 +44,13 @@ VECTOR_DISTANCE = "cosine"
 # =========================
 # OLLAMA / LLM SETTINGS
 # =========================
-OLLAMA_HOST = "localhost"
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "localhost") # localhost for local, "ollama" for docker
 OLLAMA_PORT = 11434
 OLLAMA_CHAT_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/chat"
 OLLAMA_EMBED_URL = f"http://{OLLAMA_HOST}:{OLLAMA_PORT}/api/embeddings"
 
 # Model names
-EMBED_MODEL = "nomic-embed-text"
+EMBED_MODEL = "nomic-embed-text:latest"
 CHAT_MODEL = "qwen2.5:7b"
 
 # =========================

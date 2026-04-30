@@ -28,18 +28,18 @@ logger = get_logger()
 start_date = load_start_date()
 if start_date:
     START_DATE = start_date
-    logger.info(f"📅 Načítaný START_DATE z pipeline_state: {START_DATE.strftime('%Y-%m-%d')}")
+    logger.info(f"[DATE] Nacitany START_DATE z pipeline_state: {START_DATE.strftime('%Y-%m-%d')}")
 else:
     START_DATE = datetime(2024, 1, 1)
-    logger.info(f"📅 Žiadny START_DATE v pipeline_state, začínam od: {START_DATE.strftime('%Y-%m-%d')}")
+    logger.info(f"[DATE] Ziadny START_DATE v pipeline_state, zacinam od: {START_DATE.strftime('%Y-%m-%d')}")
 
 END_DATE = datetime.today()
 
 DATA_DIR = XML_DIR
 FILTERED_DATA_DIR = XML_FILTERED_DIR
 BASE_URL = CRZ_EXPORT_URL
-logger.info(f"📄 ICO_FILE: {ICO_FILE}")
-logger.info(f"📄 ICO_FILE exists: {ICO_FILE.exists()}")
+logger.info(f"[FILE] ICO_FILE: {ICO_FILE}")
+logger.info(f"[FILE] ICO_FILE exists: {ICO_FILE.exists()}")
 
 exit_if_missing = not ICO_FILE.exists()
 if exit_if_missing:
@@ -52,7 +52,7 @@ if exit_if_missing:
 with open(ICO_FILE, "r", encoding="utf-8") as f:
     allowed_icos = set(line.strip() for line in f if line.strip())
 
-logger.info(f"🔹 Načítaných ICO: {len(allowed_icos)}")
+logger.info(f"[COUNT] Nacitanych ICO: {len(allowed_icos)}")
 
 # =========================
 # POMOCNÉ FUNKCIE
@@ -77,14 +77,14 @@ def download_zip_for_date(dt: datetime):
     xml_path = DATA_DIR / f"{date_str}.xml"
 
     if xml_path.exists():
-        logger.debug(f"✅ XML pre {date_str} už existuje, preskakujem")
+        logger.debug(f"[OK] XML pre {date_str} uz existuje, preskakujem")
         return xml_path
 
     try:
-        logger.debug(f"⬇️  Sťahujem {url}")
+        logger.debug(f"[DL] Stahujem {url}")
         resp = requests.get(url, timeout=60)
         if resp.status_code != 200:
-            logger.warning(f"⚠️ ZIP pre {date_str} neexistuje (HTTP {resp.status_code})")
+            logger.warning(f"[WARNING] ZIP pre {date_str} neexistuje (HTTP {resp.status_code})")
             return None
 
         # uloženie ZIP
@@ -96,19 +96,19 @@ def download_zip_for_date(dt: datetime):
             # predpokladáme, že ZIP obsahuje jeden XML súbor
             xml_files = [f for f in zip_ref.namelist() if f.endswith(".xml")]
             if not xml_files:
-                logger.warning(f"⚠️ ZIP pre {date_str} neobsahuje XML súbor")
+                logger.warning(f"[WARNING] ZIP pre {date_str} neobsahuje XML subor")
                 return None
             zip_ref.extract(xml_files[0], DATA_DIR)
             extracted_path = DATA_DIR / xml_files[0]
 
         # vymazanie ZIP po rozbalení
         zip_path.unlink()
-        logger.info(f"✅ Rozbalené a uložené {extracted_path.name}")
+        logger.info(f"[OK] Rozbalene a ulozene {extracted_path.name}")
 
         return extracted_path
 
     except Exception as e:
-        logger.error(f"❌ Chyba pri sťahovaní {date_str}: {e}")
+        logger.error(f"[ERROR] Chyba pri stahovani {date_str}: {e}")
         return None
 
 def filter_xml_by_ico(xml_file: Path, allowed_icos: set):
@@ -127,9 +127,9 @@ def filter_xml_by_ico(xml_file: Path, allowed_icos: set):
     if len(filtered_root):
         filtered_path = FILTERED_DATA_DIR / f"{xml_file.stem}.xml"
         etree.ElementTree(filtered_root).write(str(filtered_path), encoding="utf-8", xml_declaration=True)
-        logger.info(f"✅ Filtrované zmluvy uložené: {filtered_path.name}")
+        logger.info(f"[OK] Filtrovane zmluvy ulozene: {filtered_path.name}")
     else:
-        logger.info(f"ℹ️ Žiadne zmluvy z ICO v {xml_file.name}, nič sa neuložilo")
+        logger.info(f"[INFO] Ziadne zmluvy z ICO v {xml_file.name}, nic sa neutozilo")
 
 # =========================
 # Hlavný cyklus
@@ -143,6 +143,6 @@ while current_date <= END_DATE:
     wait_for_rate_limit()
     current_date += timedelta(days=1)
 
-print("✅ Hotovo – všetky XML súbory spracované")
-logger.info("✅ Hotovo – všetky XML súbory spracované")
+print("Hotovo - vsetky XML subory spracovane")
+logger.info("Hotovo - vsetky XML subory spracovane")
 sys.exit(0)

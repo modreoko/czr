@@ -53,13 +53,13 @@ def run_script(script_name: str, description: str, logger: logging.Logger) -> bo
     script_path = SCRIPT_DIR / script_name
 
     if not script_path.exists():
-        logger.error(f"❌ Chyba: Skript neexistuje – {script_path}")
+        logger.error(f"[ERROR] Chyba: Skript neexistuje - {script_path}")
         return False
 
     logger.info(f"\n{'=' * 60}")
-    logger.info(f"🚀 Spúšťam: {description}")
+    logger.info(f"[RUN] Spustam: {description}")
     logger.info(f"   Skript: {script_path.name}")
-    logger.info(f"   Čas: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"   Cas: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"{'=' * 60}\n")
 
     try:
@@ -72,19 +72,19 @@ def run_script(script_name: str, description: str, logger: logging.Logger) -> bo
 
         # Log script output
         if result.stdout:
-            logger.debug(f"STDOUT from {script_name}:\n{result.stdout}")
+            logger.debug(f"STDOUT z {script_name}:\n{result.stdout}")
         if result.stderr:
-            logger.debug(f"STDERR from {script_name}:\n{result.stderr}")
+            logger.debug(f"STDERR z {script_name}:\n{result.stderr}")
 
         if result.returncode == 0:
-            logger.info(f"✅ Úspešne: {description}")
+            logger.info(f"[OK] Uspesne: {description}")
             return True
         else:
-            logger.error(f"❌ Chyba: {description} (exit code: {result.returncode})")
+            logger.error(f"[ERROR] Chyba: {description} (exit code: {result.returncode})")
             return False
 
     except Exception as e:
-        logger.error(f"❌ Chyba pri spúšťaní skriptu: {e}")
+        logger.error(f"[ERROR] Chyba pri spustani skriptu: {e}")
         return False
 
 
@@ -93,27 +93,27 @@ def main(enable_logging: bool = False):
     Spustí celý pipeline.
 
     Args:
-        enable_logging: Ak True, ukladá výstupy do log/debug.log
+        enable_logging: Ak True, uklada vystupy do log/debug.log
     """
     # Initialize logging
     logger = setup_logging(enable_logging=enable_logging)
 
     if enable_logging:
-        logger.info("🔵 LOGGING ENABLED - All outputs will be saved to log/debug.log")
+        logger.info("[ON] LOGGING ENABLED - Vsetky vystupy budu ulozene do log/debug.log")
     else:
-        logger.info("⚪ LOGGING DISABLED - Outputs are not being saved")
+        logger.info("[OFF] LOGGING DISABLED - Vystupy sa neukladaju")
 
-    # Načítanie aktuálneho START_DATE na začiatku pipeline
+    # Nacitanie aktualneho START_DATE na zaciatku pipeline
     start_date = load_start_date()
     if start_date:
-        logger.info(f"📅 Načítaný START_DATE: {start_date.strftime('%Y-%m-%d')}")
+        logger.info(f"[DATE] Nacitany START_DATE: {start_date.strftime('%Y-%m-%d')}")
     else:
-        logger.warning("⚠️  START_DATE nenájdený v pipeline_state")
+        logger.warning("[WARNING] START_DATE nenajdeny v pipeline_state")
 
     logger.info(f"\n{'=' * 60}")
-    logger.info("🔄 ZAČÍNA PIPELINE")
-    logger.info(f"   Čas: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info(f"   Počet krokov: {len(SCRIPTS)}")
+    logger.info("[PIPELINE] ZACINA PIPELINE")
+    logger.info(f"   Cas: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"   Pocet krokov: {len(SCRIPTS)}")
     logger.info(f"{'=' * 60}\n")
 
     completed_steps = []
@@ -122,28 +122,28 @@ def main(enable_logging: bool = False):
         if run_script(script_name, description, logger):
             completed_steps.append(description)
         else:
-            logger.error(f"\n⏹️  Pipeline zastavený v kroku: {description}")
-            logger.info(f"\nDokončené kroky ({len(completed_steps)}):")
+            logger.error(f"\n[STOP] Pipeline zastaveny v kroku: {description}")
+            logger.info(f"\nDokoncene kroky ({len(completed_steps)}):")
             for i, step in enumerate(completed_steps, 1):
-                logger.info(f"  {i}. ✅ {step}")
+                logger.info(f"  {i}. [OK] {step}")
             return 1  # Exit with error
 
-    # Všetky kroky úspešné – uloženie START_DATE na konci pipeline
+    # Vsetky kroky uspesne - ulozenie START_DATE na konci pipeline
     logger.info(f"\n{'=' * 60}")
-    logger.info("✅ PIPELINE ÚSPEŠNE DOKONČENÝ")
-    logger.info(f"   Čas: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("[OK] PIPELINE USPESNE DOKONCENY")
+    logger.info(f"   Cas: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info(f"   Krokov: {len(completed_steps)}")
     for i, step in enumerate(completed_steps, 1):
-        logger.info(f"   {i}. ✅ {step}")
+        logger.info(f"   {i}. [OK] {step}")
 
-    # Uloženie nového START_DATE na konci pipeline
+    # Ulozenie noveho START_DATE na konci pipeline
     new_start_date = datetime.today()
     save_start_date(new_start_date)
-    logger.info(f"\n📅 Uložený nový START_DATE pre ďalšie spustenie: {new_start_date.strftime('%Y-%m-%d')}")
+    logger.info(f"\n[DATE] Ulozeny novy START_DATE pre dalsie spustenie: {new_start_date.strftime('%Y-%m-%d')}")
     logger.info(f"{'=' * 60}\n")
 
     if enable_logging:
-        logger.info(f"✅ Pipeline execution logged to: log/debug.log")
+        logger.info(f"[OK] Pipeline execution logged to: log/debug.log")
 
     return 0  # Success
 

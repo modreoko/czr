@@ -67,9 +67,9 @@ def ocr_pdf(pdf_path: Path):
 # ------------------------
 def main():
     pdf_files = sorted(TMP_DIR.glob("*.pdf"))
-    logger.info(f"Nájdené PDF súbory: {len(pdf_files)}")
+    logger.info(f"Najdene PDF subory: {len(pdf_files)}")
 
-    # Filtrovanie - spracúvam iba PDF, pre ktoré neexistuje TXT
+    # Filtrovanie - spracuvam iba PDF, pre ktore neexistuje TXT
     new_pdf_files = []
     processed_pdf_files = []
 
@@ -80,23 +80,23 @@ def main():
         else:
             new_pdf_files.append(pdf_file)
 
-    logger.info(f"Nových PDF na spracovanie: {len(new_pdf_files)}")
-    logger.info(f"Už spracovaných (preskakujem): {len(processed_pdf_files)}")
+    logger.info(f"Novych PDF na spracovanie: {len(new_pdf_files)}")
+    logger.info(f"Uz spracovanych (preskakujem): {len(processed_pdf_files)}")
 
     for pdf_file in new_pdf_files:
         ocr_pdf(pdf_file)
 
-    # Vyčistenie starých PDF súborov (ktoré už majú TXT)
+    # Vycistenie starych PDF suborov (ktore uz maju TXT)
     for pdf_file in processed_pdf_files:
         if pdf_file.exists():
             pdf_file.unlink()
-            logger.debug(f"Zmazané staré PDF: {pdf_file.name}")
+            logger.debug(f"Zmazane stare PDF: {pdf_file.name}")
 
 if __name__ == "__main__":
     try:
         main()
-        logger.info("✅ OCR všetkých PDF hotový")
+        logger.info("[OK] OCR vsetkych PDF hotovy")
         sys.exit(0)
     except Exception as e:
-        logger.error(f"❌ Chyba pri OCR: {e}")
+        logger.error(f"[ERROR] Chyba pri OCR: {e}")
         sys.exit(1)
