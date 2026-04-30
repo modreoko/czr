@@ -348,11 +348,21 @@ The system respects CRZ rate limits:
 
 ## 📄 License
 
-[Specify your license here]
+Licensed under the Apache License 2.0.
+
+## Legal Notice
+
+This project processes publicly available contract data from the Slovak Central Registry of Contracts (CRZ).
+
+The software itself is licensed under the Apache License 2.0.
+Contract documents and extracted data remain subject to their original legal status and ownership.
 
 ## 👥 Author
 
-[Your name/organization]
+Ivan Kubica, 
+GitHub: https://github.com/modreoko  
+Email: ivan@example.com
+
 
 ## 🤝 Support
 
