@@ -361,7 +361,6 @@ Contract documents and extracted data remain subject to their original legal sta
 
 Ivan Kubica, 
 GitHub: https://github.com/modreoko  
-Email: ivan@example.com
 
 
 ## 🤝 Support
